@@ -13,14 +13,7 @@ if [ -z "$3" ]
     frames=$3
 fi
 mkdir $salida
-for entry in $1/*.avi;
-do
-  echo $entry
-  mkdir $salida/$(echo "$(basename $entry)" | cut -f 1 -d '.')
-  Yolo_mark/yolo_mark $salida/$(echo "$(basename $entry)" | cut -f 1 -d '.') cap_video $entry $frames
-  ls $salida/$(echo "$(basename $entry)" | cut -f 1 -d '.')/*.jpg>>train.txt
-done
-for entry in $1/*.mp4;
+for entry in $1/*.avi $1/*.mp4;
 do
   echo $entry
   mkdir $salida/$(echo "$(basename $entry)" | cut -f 1 -d '.')
