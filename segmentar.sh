@@ -15,14 +15,13 @@ if [ -d $salida ]
 then
     echo "error $salida ya existe"
 else
-
 	mkdir $salida
 	for entry in $1/*.avi $1/*.mp4;
 	do
 	  echo $entry
 	  mkdir $salida/$(echo "$(basename $entry)" | cut -f 1 -d '.')
 	  Yolo_mark/yolo_mark $salida/$(echo "$(basename $entry)" | cut -f 1 -d '.') cap_video $entry $frames
-	  ls $salida/$(echo "$(basename $entry)" | cut -f 1 -d '.')/*.jpg>>train.txt
+	  ls $salida/$(echo "$(basename $entry)" | cut -f 1 -d '.')/*.jpg>>$salida/train.txt
 	done
 	if [ ! -z "$4" ]
 	   then
@@ -33,8 +32,7 @@ else
 		 threshi=0.25   
 	     fi
 	     neurona=$4
-	     ./darknet detector test $(ls $neurona/*.data) $(ls $neurona/*.cfg) $(ls $neurona/*.weights) -thresh $threshi -dont_show -save_labels < train.txt
+	     ./darknet detector test $(ls $neurona/*.data) $(ls $neurona/*.cfg) $(ls $neurona/*.weights) -thresh $threshi -dont_show -save_labels < $salida/train.txt
 	fi
-
 fi
 
