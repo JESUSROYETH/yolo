@@ -1,4 +1,5 @@
 #!/bin/bash
+#sh segmentar dondevideos dondeguardar cuantosframes neuronaparapretiquetar treshdeneurona cuantasespeciesenimagenes guardarpreetiquetado guardaramazon 
 if [ -z "$2" ]
   then
     salida=videossegmentados
@@ -73,12 +74,29 @@ else
 	     else
 		preetiquetar=0
              fi 
+          
+        mkdir $salida/negativos2
+          #cuantos=$(ls salida/*/*.jpg --ignore="salida/negativo*/*.jpg")
+	  #shuf -zn8 -e salida/negativos/*.jpg | xargs -0 mv -vt salida/negativos2/
+ 	cuantos=$(ls $salida/*/*.jpg | wc -l)
+	cuantos2=$(ls $salida/negativos*/*.jpg | wc -l)
+	cuantos3=$(ls $salida/basura*/*.jpg | wc -l)
+	m=$(($cuantos-$cuantos2-$cuantos3))
+	echo $m
+	#m=10
+	echo $cuantos2
+	shuf -zn$m -e $salida/negativos/*.jpg | xargs -0 mv -vt $salida/negativos2/
+	for f in $salida/negativos2/*.jpg; do
+	    mv $salida/negativos/$(basename -- "$f" | cut -f 1 -d '.').txt $salida/negativos2/
+	done
 
           for entry in $1/*.avi $1/*.mp4;
 		do
 		  echo $entry
                   if [ -e "$entry" ]
                   then
+	          echo $entry
+          	  echo "$(basename $entry)" | cut -f 1 -d '.'
 		  archivos=$salida/$(echo "$(basename $entry)" | cut -f 1 -d '.')/*.jpg
                   cantidad=$(ls $archivos | wc -l)
                   echo $cantidad
@@ -101,7 +119,15 @@ else
                   fi
                   
 		  
-	     done  
+	     done
+	     if  [ $preetiquetar -eq 1 ]; 
+		   then      
+		       zip $salida/negativos$m.zip $salida/negativos2/*.jpg $salida/negativos2/*.txt           
+		   else
+                      zip $salida/negativos$m.zip $salida/negativos2/*.jpg
+	 
+		   fi
+               
              if [ ! -z "$8" ]
                then
              m=$(date +'%F-%H%M%S')
