@@ -127,12 +127,14 @@ else
                       zip $salida/negativos$m.zip $salida/negativos2/*.jpg
 	 
 		   fi
-               
+            
              if [ ! -z "$8" ]
                then
              m=$(date +'%F-%H%M%S')
                aws s3api put-object --bucket ftp-lythium --key "$salida"__$m/
                aws s3 cp "$salida"/ s3://ftp-lythium/"$salida"__$m/ --recursive --exclude "*" --include "*.zip" --acl public-read
+                find $salida/*.zip -maxdepth 1 -type f -printf '%f\n' >> $salida/registro.txt
+	    sed -i -e "s/^/https:\/\/ftp-lythium.s3.us-east-2.amazonaws.com\/$(echo $salida)__$(echo $m)\//" $salida/registro.txt
              fi             
             
              
