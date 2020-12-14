@@ -5,9 +5,9 @@ import ntpath
 import math
 import glob
 import multiprocessing as mp
-import cv2 as cv2
+import cv2_2 as cv2
 import time
-import darknet as darknet
+import darknet_2 as darknet
 import argparse
 from threading import Thread, enumerate
 from queue import Queue
@@ -15,6 +15,7 @@ import numpy as np
 from os.path import join, splitext, isfile
 from sklearn.metrics.pairwise import euclidean_distances
 from scipy.optimize import linear_sum_assignment
+from functools import partial
 import pickle
 
 
@@ -63,7 +64,7 @@ def guardarpkl(inputvideo):
 
 
 
-def contar(input_source):
+def contar(parametros,input_source):
     carpeta = 'cooke_1211'
     class chancho:
         def __init__(self, x, y, w, h, rut):
@@ -77,9 +78,9 @@ def contar(input_source):
             self.bautizado = False
             self.recorrido = 0
     path_data = os.getcwd()
-    parametros = [0.12258329004931656, 0.13604936188941608, 0.7778348438634688, 0.4065490843381925, 0.40331703629945426,
-                  0.1640518327013193, 0.420739806554848, 0.5245631693900111, 0.21502020872607353, 0.482186332440264,
-                  0.4176353359845454, 0.6843880355248698, 0.5203910748394105, 0.9972326581009332]
+    # parametros = [0.12258329004931656, 0.13604936188941608, 0.7778348438634688, 0.4065490843381925, 0.40331703629945426,
+    #               0.1640518327013193, 0.420739806554848, 0.5245631693900111, 0.21502020872607353, 0.482186332440264,
+    #               0.4176353359845454, 0.6843880355248698, 0.5203910748394105, 0.9972326581009332]
     config_file = join(path_data, glob.glob(join(path_data, carpeta + '/*.cfg'))[0])
     data_file = join(path_data, glob.glob(join(path_data, carpeta + '/*.data'))[0])
     weights = join(path_data, glob.glob(join(path_data, carpeta + '/*.weights'))[0])
@@ -119,6 +120,8 @@ def contar(input_source):
         mostrar = []  # id a mostrar
         funcion1 = lambda xx: abs(xx * (y2 - y1) / 208 + (y1 - xx * (y2 - y1) / 208))  # funcion para bautizados
         funcion2 = lambda xx: abs(xx * (y22 - y11) / 208 + (y11 - xx * (y22 - y11) / 208))  # funcion para no bautizados
+        if len(chanchos)>15:
+            return 90000000000
         for x in chanchos:
             if (x.bautizado and x.desaparecio * funcion1(x.x) > maxdesap1) or (
                     not x.bautizado and x.desaparecio * funcion2(x.x) > maxdesap2):
@@ -128,7 +131,7 @@ def contar(input_source):
         if detections:
             matrix2 = []
             for x in detections:
-                if x[0] == 'salmon' and float(x[1]) / 100 > thresh and areamin<float(x[2][2]*x[2][3]<areamax):
+                if x[0] == 'salmon' and float(x[1]) / 100 > thresh and areamin<float(x[2][2]*x[2][3])<areamax:
                     matrix.append([x[2][0], x[2][1],x[2][2], x[2][3]])
             if len(chanchos):
                 matrixtracker = []
@@ -209,40 +212,34 @@ def contar(input_source):
 
     cap.release()
     cv2.destroyAllWindows()
-    print(contador)
+    #print(contador)
     return contador
 
+pool=mp.Pool(4)
 
-def algoritmogenetico(mm):
+def algoritmogenetico():
     import pickle
     mejor = []
-    nn = mm
 
-    def evaluar(individuo, nn):
+
+    def evaluar(individuo):
         extensions = '.pkl'
         error = 0
         porpescado = 0
-        for subdir, dirs, files in os.walk(carpetaentrenamiento):
-            for file in files:
-                ext = os.path.splitext(file)[-1].lower()
-                if ext in extensions:
-                    archi = os.path.join(subdir, file)
-                    cantidad = contar(individuo)
-                    # print("Conteo", cantidad,"real",float(archi[-7:-4]))
-                    cnt = float(archi[-7:-4])
-                    porpescado += cnt
-                    error += math.sqrt((cnt - cantidad) ** 2)
-        # print("error cuadrático", error)
-        error = error / porpescado
+        s = glob.glob('/home/jesus/pruebas/nuevo/contados/*/*.pkl')
+        cantidad=pool.map(partial(contar,individuo),s)
+        print(cantidad)
+        error=sum(list(map(lambda x,y: math.sqrt((x-y)**2),cantidad,[int(x[-7:-4]) for x in s])))
+        print(error)
         return error
 
-    cantidadparametros = 14
+    cantidadparametros = 16
     individuos = 20
     path_data = os.getcwd()
     poblaciones = []
     poblacion = []
     carpetaentrenamiento = path_data + '/entrenamiento/'
-    for kkk in range(0, nn + 1):
+    for kkk in range(0, 1):
         poblacion = []
         for k in range(0, individuos):
             poblacion.append([random.random() for i in range(0, cantidadparametros)])
@@ -250,45 +247,38 @@ def algoritmogenetico(mm):
 
     while True:
 
-        for kkk in range(nn, nn + 1):
+        for kkk in range(0, 1):
             poblacion = poblaciones[kkk]
-            if os.path.isfile('parametros{}.pkl'.format(kkk)):
-                f = open('parametros{}.pkl'.format(kkk), 'rb')
+            if os.path.isfile('parametros.pkl'):
+                f = open('parametros.pkl', 'rb')
                 mejor = pickle.load(f)
                 f.close()
                 for ll in range(0, cantidadparametros - len(mejor)):
                     mejor.append(random.random())
                 poblacion[-1] = mejor
-            if os.path.isfile('parametros{}.pkl'.format(kkk + 1)):
-                f = open('parametros{}.pkl'.format(kkk + 1), 'rb')
-                mejor2 = pickle.load(f)
-                f.close()
-                for ll in range(0, cantidadparametros - len(mejor2)):
-                    mejor2.append(random.random())
-                poblacion[-2] = mejor2
             adaptacion = []
             for indiv in poblacion:
-                adaptacion.append(1 / (evaluar(indiv, kkk) + 0.00001))
+                adaptacion.append(1 / (evaluar(indiv) + 0.00001))
 
             dice = adaptacion.index(max(adaptacion))
             errorahora = (1 / adaptacion[dice]) - 0.00001
-            print("error actual({}): ".format(kkk), errorahora)
-            if os.path.isfile('errorg{}.pkl'.format(kkk)):
-                f = open('errorg{}.pkl'.format(kkk), 'rb')
+            print("error actual: ", errorahora)
+            if os.path.isfile('errorg.pkl'):
+                f = open('errorg.pkl', 'rb')
                 error = pickle.load(f)
                 f.close()
-                print("error global({}): ".format(kkk), error)
-                m = open('errorg{}.pkl'.format(kkk), 'wb')
+                print("error global: ", error)
+                m = open('errorg.pkl', 'wb')
                 pickle.dump(errorahora, m)
                 m.close()
-                m2 = open('parametros{}.pkl'.format(kkk), 'wb')
+                m2 = open('parametros.pkl', 'wb')
                 pickle.dump(poblacion[dice], m2)
                 m2.close()
             else:
-                m = open('errorg{}.pkl'.format(kkk), 'wb')
+                m = open('errorg.pkl', 'wb')
                 pickle.dump(errorahora, m)
                 m.close()
-                m2 = open('parametros{}.pkl'.format(kkk), 'wb')
+                m2 = open('parametros.pkl', 'wb')
                 pickle.dump(poblacion[dice], m2)
                 m2.close()
             nuevapoblacion = poblacion.copy()
@@ -321,5 +311,13 @@ def algoritmogenetico(mm):
 #contar(input_source)
 
 
-s=glob.glob('/home/jesus/pruebas/nuevo/contados/*/*.mp4')
-guardarpkl(s)
+# s=glob.glob('/home/jesus/pruebas/nuevo/contados/*/*.mp4')
+# guardarpkl(s)
+algoritmogenetico()
+# pool=mp.Pool(4)
+# parametros = [0.12258329004931656, 0.13604936188941608, 0.7778348438634688, 0.4065490843381925, 0.40331703629945426,
+#                   0.1640518327013193, 0.420739806554848, 0.5245631693900111, 0.21502020872607353, 0.482186332440264,
+#                   0.4176353359845454, 0.6843880355248698, 0.5203910748394105, 0.9972326581009332, 0.1, 0.9]
+# s = glob.glob('/home/jesus/pruebas/nuevo/contados/*/*.pkl')
+# cantidad=pool.map(partial(contar,parametros),s)
+# print(cantidad)
