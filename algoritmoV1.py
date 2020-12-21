@@ -5,9 +5,9 @@ import ntpath
 import math
 import glob
 import multiprocessing as mp
-import cv2_2 as cv2
+import cv2 as cv2
 import time
-import darknet_2 as darknet
+import darknet as darknet
 import argparse
 from threading import Thread, enumerate
 from queue import Queue
@@ -107,6 +107,10 @@ def contar(parametros,input_source):
     chanchos = []
     contador = 0
     cap = cv2.VideoCapture(input_source)
+    #out=cv2.VideoWriter("prueba.avi", cv2.VideoWriter_fourcc(*'XVID'), 24.0, (int(cap.get(3)), int(cap.get(4))))
+    #out = cv2.VideoWriter('output.mp4', -1, 20.0, (416, 416))
+    out = cv2.VideoWriter("output2.avi",
+                             cv2.VideoWriter_fourcc(*"MJPG"), 30, (416, 416))
     while cap.isOpened():
         ret, frame = cap.read()
         if not ret:
@@ -194,43 +198,51 @@ def contar(parametros,input_source):
                 if chanchos[mostrar[x]].rut == 0:
                     image = cv2.circle(image, (int(matrix[x][0]), int(matrix[x][1])), radius=8, color=(57, 255, 20),
                                        thickness=-1)
+
                 else:
                     image = cv2.circle(image, (int(matrix[x][0]), int(matrix[x][1])), radius=8, color=(255, 0, 0),
                                        thickness=-1)
+                    image = cv2.putText(image, str(chanchos[mostrar[x]].rut), (int(matrix[x][0]), int(matrix[x][1])), cv2.FONT_HERSHEY_SIMPLEX, 1,
+                                   (255, 0, 0), 2, cv2.LINE_AA)
 
                 # image = cv2.circle(image, (int(matrix[x][0]), int(matrix[x][1])), radius=4, color=(0, 0, 255), thickness=-1)
                 # image = cv2.putText(image, valor, (int(matrix[x][0]), int(matrix[x][1])), cv2.FONT_HERSHEY_SIMPLEX, 1,
                 #                    (0, 0, 255), 2, cv2.LINE_AA)
-        #image = cv2.putText(image, str(contador), (10, 400), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 3, cv2.LINE_AA)
+        image = cv2.putText(image, str(contador), (10, 400), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 3, cv2.LINE_AA)
+        image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
         cv2.imshow('frame', image)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
-        image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+        out.write(image)
+        #
         #print(contador)
         # with lock:
         #   outputFrame = image.copy()
 
     cap.release()
     cv2.destroyAllWindows()
+    out.release()
     #print(contador)
     return contador
 
-pool=mp.Pool(4)
+pool=mp.Pool(5)
 
 def algoritmogenetico():
     import pickle
     mejor = []
 
 
-    def evaluar(individuo):
+    def evaluar(individuo,mostrar):
         extensions = '.pkl'
         error = 0
         porpescado = 0
-        s = glob.glob('/home/jesus/pruebas/nuevo/contados/*/*.pkl')
+        s = glob.glob(os.getcwd()+'/contados/*/*.pkl')
         cantidad=pool.map(partial(contar,individuo),s)
-        print(cantidad)
+        #print(cantidad)
         error=sum(list(map(lambda x,y: math.sqrt((x-y)**2),cantidad,[int(x[-7:-4]) for x in s])))
-        print(error)
+        if mostrar:
+            print(list(map(lambda x,y: str(x)+":"+str(y),cantidad,[int(x[-7:-4]) for x in s])))
+            print(list(map(lambda x,y: abs(x-y),cantidad,[int(x[-7:-4]) for x in s])))
         return error
 
     cantidadparametros = 16
@@ -258,7 +270,13 @@ def algoritmogenetico():
                 poblacion[-1] = mejor
             adaptacion = []
             for indiv in poblacion:
-                adaptacion.append(1 / (evaluar(indiv) + 0.00001))
+                if len(adaptacion) < len(poblacion)-1:
+                    adaptacion.append(1 / (evaluar(indiv,False) + 0.00001))
+                else:
+                    adaptacion.append(1 / (evaluar(indiv, True) + 0.00001))
+
+
+
 
             dice = adaptacion.index(max(adaptacion))
             errorahora = (1 / adaptacion[dice]) - 0.00001
@@ -286,7 +304,7 @@ def algoritmogenetico():
                 cruzarhijos = random.choices(range(0, individuos), adaptacion, k=2)
                 for mm in range(0, cantidadparametros):
                     nuevapoblacion[kl][mm] = poblacion[random.choice(cruzarhijos)][mm]
-                    if random.random() < 0.3:
+                    if random.random() < 0.1:
                         nuevapoblacion[kl][mm] = random.random()
             nuevapoblacion[-1] = poblacion[dice]
             poblaciones[kkk] = nuevapoblacion.copy()
@@ -294,11 +312,17 @@ def algoritmogenetico():
 
 
 
-
-
+#algoritmogenetico()
+#s = glob.glob(os.getcwd()+'/contados/*/*.mp4')
+#guardarpkl(s)
+parametros=[0.6707239020507427, 0.24920841953842188, 0.6690455158133256, 0.30924822675922004, 0.4537408544607523, 0.048285299766918754, 0.6111454676469459, 0.28447953847666807, 0.014618176015858797, 0.10956187335244405, 0.04344376803173755, 0.7884955310438393, 0.003626018564747868, 0.8326239606204782, 0.022820082089734628, 0.6382815178249167]
+#[0.2745502279799066, 0.28808338185508775, 0.3556421604771698, 0.4517778528270111, 0.185497635697233, 0.08318465553892151, 0.6519535309400868, 0.5779365745141609, 0.028141320444893925, 0.21949240887122778, 0.06561427995372227, 0.5853292657401884, 0.37534627815121513, 0.6976157244141202, 0.01091919739780478, 0.623923135037621]
 
 # algoritmogenetico()
-
+s=glob.glob('/home/jesus/pruebas/nuevo/contados/*/*155.mp4')
+#s'/home/jesus/pruebas/nuevo/contados/*/'
+# parametros=pickle.load(open('parametros.pkl','rb'))
+contar(parametros,s[0])
 # procesos=[]
 # for km in range(9,26):
 #     procesos.append(mp.Process(target=algoritmogenetico,args=(km, )))
@@ -310,10 +334,12 @@ def algoritmogenetico():
 #input_source = join(os.getcwd(), "04_004.mp4")
 #contar(input_source)
 
-
-# s=glob.glob('/home/jesus/pruebas/nuevo/contados/*/*.mp4')
+# import pickle
+# s=glob.glob('/home/jesus/pruebas/nuevo/contados/*/Largo*.mp4')
+# parametros=pickle.load(open('parametros.pkl','rb'))
+# contar(parametros,s[0])
 # guardarpkl(s)
-algoritmogenetico()
+#algoritmogenetico()
 # pool=mp.Pool(4)
 # parametros = [0.12258329004931656, 0.13604936188941608, 0.7778348438634688, 0.4065490843381925, 0.40331703629945426,
 #                   0.1640518327013193, 0.420739806554848, 0.5245631693900111, 0.21502020872607353, 0.482186332440264,
