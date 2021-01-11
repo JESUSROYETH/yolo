@@ -17,7 +17,7 @@ then
     echo "error $salida ya existe"
 else
 	mkdir $salida
-	for entry in $1/*.avi $1/*.mp4;
+	for entry in $1/*.avi $1/*.mp4 $1/*.MOV;
 	do
 	  echo $entry
           echo "$(basename $entry)" | cut -f 1 -d '.'
@@ -90,7 +90,7 @@ else
 	    mv $salida/negativos/$(basename -- "$f" | cut -f 1 -d '.').txt $salida/negativos2/
 	done
 
-          for entry in $1/*.avi $1/*.mp4;
+          for entry in $1/*.avi $1/*.mp4 $1/*.MOV;
 		do
 		  echo $entry
                   if [ -e "$entry" ]
